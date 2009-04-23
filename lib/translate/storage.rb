@@ -1,4 +1,7 @@
 class Translate::Storage
+  cattr_accessor :language_files_path
+  @@language_files_path = File.join(Rails.root, "config", 'locales')
+  
   attr_accessor :locale
   
   def initialize(locale)
@@ -15,6 +18,6 @@ class Translate::Storage
   end
   
   def file_path
-    File.join(Rails.root, "config", "locales", "#{locale}.yml")
+    File.join(@@language_files_path, "#{locale}.yml")
   end
 end
