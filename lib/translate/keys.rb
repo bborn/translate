@@ -1,6 +1,16 @@
 require 'pathname'
 
 class Translate::Keys
+  
+  cattr_accessor :paths_to_scan
+  @@paths_to_scan = ["app", 'config', 'lib', 'public/javascripts']  
+
+  cattr_accessor :valid_file_extensions
+  @@valid_file_extensions = ['rb', 'erb', 'rhtml', 'haml', 'js', 'rjs']
+  
+  cattr_accessor :i18n_lookup_pattern
+  @@i18n_lookup_pattern = /\b(?:I18n\.t|I18n\.translate|t)(?:\s|\():?'([a-z0-9_]+.[a-z0-9_.]+)'\)?/
+  
   # Allows keys extracted from lookups in files to be cached
   def self.files
     @@files ||= Translate::Keys.new.files
@@ -99,7 +109,7 @@ class Translate::Keys
   
   def extract_files
     files_to_scan.inject(HashWithIndifferentAccess.new) do |files, file|
-      IO.read(file).scan(i18n_lookup_pattern).flatten.map(&:to_sym).each do |key|
+      IO.read(file).scan(@@i18n_lookup_pattern).flatten.compact.map(&:to_sym).each do |key|
         files[key] ||= []
         path = Pathname.new(File.expand_path(file)).relative_path_from(Pathname.new(Rails.root)).to_s
         files[key] << path if !files[key].include?(path)
@@ -107,16 +117,15 @@ class Translate::Keys
       files
     end
   end
-
-  def i18n_lookup_pattern
-    /\b(?:I18n\.t|I18n\.translate|t)(?:\s|\():?'([a-z0-9_]+.[a-z0-9_.]+)'\)?/
-  end
-
-  def files_to_scan
-    Dir.glob(File.join(files_root_dir, "{app,config,lib}", "**","*.{rb,erb,rhtml}")) +
-      Dir.glob(File.join(files_root_dir, "public", "javascripts", "**","*.js"))
-  end
   
+  def extensions_to_scan
+    "*.{#{@@valid_file_extensions.join(',')}}"
+  end
+    
+  def files_to_scan
+    Dir.glob(File.join(files_root_dir, "{#{@@paths_to_scan.join(',')}}", "**", extensions_to_scan))
+  end
+    
   def files_root_dir
     Rails.root
   end

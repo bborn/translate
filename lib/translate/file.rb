@@ -10,6 +10,11 @@ class Translate::File
   def write(keys)
     FileUtils.mkdir_p File.dirname(path)
     File.open(path, "w") do |file|
+      # messages = Translate::File.deep_stringify_keys(keys)
+      # messages.keys.sort.each do |key|      
+      #   file.puts(keys_to_yaml( {key => messages[key]}) )
+      # end
+      # 
       file.puts keys_to_yaml(Translate::File.deep_stringify_keys(keys))
     end    
   end
@@ -24,9 +29,9 @@ class Translate::File
       value = deep_stringify_keys(value) if value.is_a? Hash
       result[(key.to_s rescue key) || key] = value
       result
-    }
+    }  
   end
-  
+
   private
   def keys_to_yaml(keys)
     # Using ya2yaml, if available, for UTF8 support

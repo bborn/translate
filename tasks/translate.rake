@@ -140,6 +140,57 @@ namespace :translate do
     Translate::Storage.new(ENV['TO'].to_sym).write_to_file
   end
 
+  desc "Show all keys that exist in FROM_LOCALE but are absent in TO_LOCALE locales"
+  task :diff_keys => :environment do
+    from_keys = Translate::Keys.new.i18n_keys(ENV['FROM_LOCALE'])
+    to_keys   = Translate::Keys.new.i18n_keys(ENV['TO_LOCALE'])
+
+    difference = from_keys - to_keys
+    
+    puts difference
+  end
+  
+  desc "Show keys that are in your template code but aren't in LOCALE"
+  task :orphans => :environment do
+    Translate::Keys.paths_to_scan << 'vendor/plugins/community_engine/app'    
+    Translate::Keys.i18n_lookup_pattern = /(?:(?:\'|\")([^\'\"]+)(?:\'|\")\.l)|(?:\b(?:I18n\.t|I18n\.translate|t)(?:\s|\():?'([a-z0-9_]+.[a-z0-9_.]+)'\)?)|(?:\:([a-z0-9_]+)\.l)/  
+    keys_from_files = Translate::Keys.files.keys.map(&:to_s)    
+    locale_keys     = Translate::Keys.new.i18n_keys(ENV['LOCALE'])
+
+    puts "The following keys appear in your application's source, but not in #{ENV['LOCALE']}.yml"    
+    puts locale_keys - keys_from_files
+  end
+  
+  desc "Shows keys from LOCALE that are obsolete (can't be found in your template code)."
+  task :obsolete => :environment do
+    Translate::Keys.paths_to_scan << 'vendor/plugins/community_engine/app'    
+    Translate::Keys.i18n_lookup_pattern = /(?:(?:\'|\")([^\'\"]+)(?:\'|\")\.l)|(?:\b(?:I18n\.t|I18n\.translate|t)(?:\s|\():?'([a-z0-9_]+.[a-z0-9_.]+)'\)?)|(?:\:([a-z0-9_]+)\.l)/  
+    
+    keys_from_files = Translate::Keys.files.keys.map(&:to_s)
+    
+    if ENV['LOCALE'].eql?('en')
+      I18n.load_path -= Dir[ (File.join(RAILS_ROOT, "vendor", "plugins", "community_engine", "lang", "ui", '*.{rb,yml}')) ]
+      I18n.load_path -= Dir[ (File.join(RAILS_ROOT, "lang", "ui", '*.{rb,yml}')) ]    
+      I18n.reload!
+      #remove the CE locales so we can get just the Rails defaults alone
+      rails_keys = Translate::Keys.new.i18n_keys(ENV['LOCALE'])
+      
+      #put them back
+      I18n.load_path += Dir[ (File.join(RAILS_ROOT, "vendor", "plugins", "community_engine", "lang", "ui", '*.{rb,yml}')) ]
+      I18n.load_path += Dir[ (File.join(RAILS_ROOT, "lang", "ui", '*.{rb,yml}')) ]    
+      I18n.reload!      
+    else
+      rails_keys = []
+    end
+
+    all_keys = Translate::Keys.new.i18n_keys(ENV['LOCALE'])
+    our_keys = all_keys - rails_keys
+    
+    puts "The following keys appear in #{ENV['LOCALE']}.yml but not in your application's source."
+    puts our_keys - keys_from_files
+  end
+
+
   desc "List keys that have changed I18n texts between YAML file ENV['FROM_FILE'] and YAML file ENV['TO_FILE']. Set ENV['VERBOSE'] to see changes"
   task :changed => :environment do
     from_hash = Translate::Keys.to_shallow_hash(Translate::File.new(ENV['FROM_FILE']).read)
