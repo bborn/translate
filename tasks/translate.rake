@@ -140,7 +140,7 @@ namespace :translate do
     Translate::Storage.new(ENV['TO'].to_sym).write_to_file
   end
 
-  desc "Show all keys that exist in FROM_LOCALE but are absent in TO_LOCALE locales"
+  desc "Show all keys that exist in FROM_LOCALE but are absent in TO_LOCALE"
   task :diff_keys => :environment do
     from_keys = Translate::Keys.new.i18n_keys(ENV['FROM_LOCALE'])
     to_keys   = Translate::Keys.new.i18n_keys(ENV['TO_LOCALE'])
@@ -158,7 +158,7 @@ namespace :translate do
     locale_keys     = Translate::Keys.new.i18n_keys(ENV['LOCALE'])
 
     puts "The following keys appear in your application's source, but not in #{ENV['LOCALE']}.yml"    
-    puts locale_keys - keys_from_files
+    puts keys_from_files - locale_keys
   end
   
   desc "Shows keys from LOCALE that are obsolete (can't be found in your template code)."
