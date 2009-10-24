@@ -187,7 +187,9 @@ namespace :translate do
     our_keys = all_keys - rails_keys
     
     puts "The following keys appear in #{ENV['LOCALE']}.yml but not in your application's source."
-    puts our_keys - keys_from_files
+
+    obsolete_keys = our_keys - keys_from_files
+    puts obsolete_keys
   end
 
 
